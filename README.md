@@ -1,5 +1,14 @@
 # Disaster Response Pipeline Project
 
+The goal of this project is to analyze disaster data from Figure Eight to build a model for an API that classifies disaster messages.
+It also includes a web app where one can test the trained model by inputing a new message and getting a classification result.
+
+### About the data
+
+The data set contains real messages that were sent during disaster events.
+There are 26216 messages categorized into 36 different categories.
+
+
 ### Instructions:
 1. Run the following commands in the project's root directory to set up your database and model.
 
