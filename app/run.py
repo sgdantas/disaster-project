@@ -7,7 +7,7 @@ from nltk.tokenize import word_tokenize
 
 from flask import Flask
 from flask import render_template, request, jsonify
-from plotly.graph_objs import Bar
+from plotly.graph_objs import Bar, Heatmap
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 
@@ -26,25 +26,26 @@ def tokenize(text):
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+df = pd.read_sql_table('disaster_data', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = joblib.load("../models/classifier.pkl")
 
 
-# index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
     
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
-    genre_counts = df.groupby('genre').count()['message']
-    genre_names = list(genre_counts.index)
-    
+    y = df.iloc[:,4:]
+    avg_dict = {}
+    for col in y:
+        avg_dict[col] = (df.message.str.len() * df[col]).sum()/df[col].sum()
+    genre_counts = pd.Series(avg_dict)
+    genre_names = list(y)
+    z = y.corr()
     # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             'data': [
@@ -55,15 +56,26 @@ def index():
             ],
 
             'layout': {
-                'title': 'Distribution of Message Genres',
+                'title': 'Distribution of Message Lenghts',
                 'yaxis': {
-                    'title': "Count"
+                    'title': "Average Length"
                 },
                 'xaxis': {
-                    'title': "Genre"
+                    'title': "Type of Emergency"
                 }
             }
-        }
+        },{
+            'data': [
+                Heatmap(
+                    z=z.values,
+                    x=list(y.corr()),y=list(y.corr())
+                )
+            ],
+
+            'layout': {
+                'title': 'Label Correlations'
+                }
+            }
     ]
     
     # encode plotly graphs in JSON
@@ -72,7 +84,6 @@ def index():
     
     # render web page with plotly graphs
     return render_template('master.html', ids=ids, graphJSON=graphJSON)
-
 
 # web page that handles user query and displays model results
 @app.route('/go')
@@ -83,6 +94,7 @@ def go():
     # use model to predict classification for query
     classification_labels = model.predict([query])[0]
     classification_results = dict(zip(df.columns[4:], classification_labels))
+    classification_results.update({'child_alone':0})
 
     # This will render the go.html Please see that file. 
     return render_template(
